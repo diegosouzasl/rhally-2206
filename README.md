@@ -68,11 +68,50 @@ Recrutamento e seleção.
 - Portal de vagas público (`vagas.rhally.com.br`)
 
 ### 💜 Cultura
-Engajamento e clima organizacional.
-- One-on-one sessions (chat estruturado gestor ↔ colaborador)
-- Resumo automático de sessões
-- Pesquisas de clima e NPS
-- Comunicados internos
+Identidade, comportamento e fit organizacional.
+
+**Atualmente entregue:**
+- One-on-one sessions (chat estruturado gestor ↔ colaborador) com notas, action items, tópicos de pauta, lembretes, exportação PDF e assinatura digital
+- Comunicados internos com controle de leitura
+
+**Em construção (roadmap):**
+- **Profiler DISC**: mapeamento comportamental para fit cultural na contratação — identifica perfil dominante, influente, estável e conformista
+- **Fit Cultural (MVC)**: teste científico baseado no Modelo de Valores Concorrentes com 4 quadrantes — Clã, Empreendedora, Burocrática e Mercado — mede compatibilidade candidato × empresa (ref. Gupy)
+- **Engenharia de Cargos**: estrutura cargos, trilhas e planos de carreira por nível
+- **Análise demissional**: formulário estruturado + correlação com dados de engajamento
+- **Predição de saída voluntária (Text Analytics)**: análise de linguagem em pesquisas e feedbacks para identificar risco de desligamento
+- **Hotspots**: mapa de grupos críticos com baixo engajamento ou alto risco de turnover
+- **Alertas inteligentes**: variação de engajamento por setor/liderança e previsão de turnover
+- **Radar de Rotatividade**: índices de entrada, saída e retenção com histórico e projeção
+
+---
+
+### 📣 Engajamento *(módulo separado de Cultura)*
+Mensuração contínua, pesquisas e inteligência de clima organizacional.
+
+**Em construção (roadmap):**
+
+#### Pesquisas
+- **Pesquisa de Clima personalizada**: perguntas customizáveis por empresa
+- **eNPS / NPS em tempo real**: escala 0–10 com classificação automática de promotores, neutros e detratores
+- **Pesquisa admissional**: aplicada nos primeiros dias do colaborador
+- **Pesquisa de engajamento**: ciclos configuráveis
+- **Pesquisa demissional**: aplicada no desligamento, correlacionada com dados históricos
+- **Pulse Survey (pesquisa de pulso)**: janela deslizante de 14 dias, 5–6 perguntas por semana, pool de 122 perguntas com 7 tipos de resposta e coleta qualitativa adaptativa (ref. TeamCulture)
+
+#### 10 Pilares de Engajamento
+Liderança · Alinhamento · Crescimento · Satisfação · Relacionamento · Vestir a Camisa · Bem-estar · Felicidade · Reconhecimento · Feedback
+- Diagnóstico de causa raiz com correlação entre pilares
+- Score por pilar com comparação histórica
+
+#### Inteligência e Analytics
+- **Axel AI**: analista inteligente que gera cards de ação priorizados automaticamente com base nos dados de engajamento (ref. TeamCulture)
+- **Score de Liderança (0–100)** em 5 dimensões — indicador preditivo de engajamento futuro
+- **Planos de ação gerados por IA** com base nos resultados das pesquisas
+- **Dashboards com análise histórica** e comparação de scores ao longo do tempo
+- **Mensuração contínua** de comportamentos organizacionais com ranking dinâmico baseado na cultura presente
+- **Benchmark** com outras empresas da base Rhally (anonimizado por setor/porte)
+- Exportação de dados em **CSV, XLSX e PPTX**
 
 ### 🦺 Safety
 Saúde e segurança do trabalho.
