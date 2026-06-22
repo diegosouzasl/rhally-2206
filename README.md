@@ -40,12 +40,10 @@ Gestão completa do ciclo de vida do colaborador.
 - Gerenciamento de funcionários (ativo/inativo)
 - Inativação de funcionário com registro de motivo
 - Upload e gestão de documentos por funcionário
-- Atestados médicos (envio pelo colaborador, aprovação pelo RH)
-- Solicitações e justificativas
 - Cadastro por setor e filial
 
 ### ⏱ Produtividade
-Controle de jornada e ponto eletrônico.
+Controle de jornada, ponto eletrônico e gestão de ausências.
 - Registro de ponto (facial, geolocalização, QR code)
 - Ponto geral (link público com token para registro sem login)
 - Ponto por CPF (autenticação alternativa)
@@ -57,12 +55,13 @@ Controle de jornada e ponto eletrônico.
 - Ocorrências e atrasos
 - Faltas por funcionário e por setor
 - Folgas (solicitação + aprovação)
-- Solicitações de justificativa
+- Solicitações e justificativas de ponto
+- **Atestados médicos**: envio pelo colaborador, download, visualização, aprovação e rejeição pelo RH
 - Espelho de ponto (semanal e mensal)
 
 ### 🎯 Talent
 Recrutamento e seleção.
-- Gestão de vagas (jobs) com aprovação pelo admin Rhally
+- Gestão de vagas (a empresa cadastra livremente dentro do plano contratado)
 - Pipeline de candidatos com kanban
 - Agendamento de entrevistas
 - Testes e avaliações de candidatos
