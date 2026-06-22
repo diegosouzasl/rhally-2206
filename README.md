@@ -67,14 +67,16 @@ Recrutamento e seleção.
 - Testes e avaliações de candidatos
 - Portal de vagas público (`vagas.rhally.com.br`)
 
-### 💜 Cultura
-Identidade, comportamento e fit organizacional.
+### 💜 Cultura & Engajamento
+Identidade organizacional, comportamento, clima e mensuração contínua de engajamento.
 
 **Atualmente entregue:**
 - One-on-one sessions (chat estruturado gestor ↔ colaborador) com notas, action items, tópicos de pauta, lembretes, exportação PDF e assinatura digital
 - Comunicados internos com controle de leitura
 
 **Em construção (roadmap):**
+
+#### Cultura & Comportamento
 - **Profiler DISC**: mapeamento comportamental para fit cultural na contratação — identifica perfil dominante, influente, estável e conformista
 - **Fit Cultural (MVC)**: teste científico baseado no Modelo de Valores Concorrentes com 4 quadrantes — Clã, Empreendedora, Burocrática e Mercado — mede compatibilidade candidato × empresa (ref. Gupy)
 - **Engenharia de Cargos**: estrutura cargos, trilhas e planos de carreira por nível
@@ -83,13 +85,6 @@ Identidade, comportamento e fit organizacional.
 - **Hotspots**: mapa de grupos críticos com baixo engajamento ou alto risco de turnover
 - **Alertas inteligentes**: variação de engajamento por setor/liderança e previsão de turnover
 - **Radar de Rotatividade**: índices de entrada, saída e retenção com histórico e projeção
-
----
-
-### 📣 Engajamento *(módulo separado de Cultura)*
-Mensuração contínua, pesquisas e inteligência de clima organizacional.
-
-**Em construção (roadmap):**
 
 #### Pesquisas
 - **Pesquisa de Clima personalizada**: perguntas customizáveis por empresa
