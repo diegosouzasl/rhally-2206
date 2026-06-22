@@ -1,0 +1,487 @@
+// Rhally — Core (multi-tenant) + Portal do Cliente
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// CORE / MULTI-TENANT ============================
+
+/// Conta que contrata a plataforma (isolamento completo de dados).
+model Tenant {
+  id                Int          @id @default(autoincrement())
+  nome              String
+  subdominio        String       @unique // ex.: empresa.rhally.com.br
+  dominioCustom     String?      @unique // ex.: app.empresadocliente.com.br
+  status            TenantStatus @default(ATIVO)
+  origem            TenantOrigem @default(MANUAL)
+  trialEndsAt       DateTime?    // null = não é trial ou já virou contrato
+
+  // White-label
+  nomeSistema   String?
+  logoUrl       String?
+  faviconUrl    String?
+  corPrimaria   String? @default("#5b21b6")
+  corSecundaria String? @default("#7c3aed")
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  empresas      Empresa[]
+  usuarios      Usuario[]
+  perfis        Perfil[]
+  tenantModulos TenantModulo[]
+  contratos     Contrato[]
+  faturas       Fatura[]
+  logs          LogAuditoria[]
+  solicitacoes  Solicitacao[]
+  eventos       EventoHistorico[]
+
+  @@map("tenants")
+}
+
+/// Empresa do grupo dentro de um tenant (cada uma com CNPJ próprio).
+model Empresa {
+  id            Int     @id @default(autoincrement())
+  tenantId      Int
+  razaoSocial   String
+  nomeFantasia  String?
+  cnpj          String  @unique
+  inscEstadual  String?
+  regimeTributario String?
+  cep           String?
+  endereco      String?
+  logoUrl       String?
+  asaasCustomerId String? @unique // id do cliente no Asaas (faturamento)
+  criadoEm      DateTime @default(now())
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  usuarioEmpresas UsuarioEmpresa[]
+  usuarioPerfis   UsuarioPerfil[]
+
+  @@index([tenantId])
+  @@map("empresas")
+}
+
+/// Usuário da plataforma (pertence a um tenant).
+model Usuario {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  nome        String
+  email       String   @unique
+  cpf         String?  // identifica a pessoa na linha do tempo (histórico de vida)
+  senhaHash   String?
+  telefone    String?
+  cargo       String?
+  fotoUrl     String?
+  departamento String?
+  ativo       Boolean  @default(true)
+  isMaster    Boolean  @default(false) // operador master: acesso total, ignora RBAC
+
+  // Segurança (Fase 2)
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+  googleId         String? @unique
+  ultimoLogin      DateTime?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  usuarioEmpresas UsuarioEmpresa[]
+  usuarioPerfis   UsuarioPerfil[]
+  sessoes         Sessao[]
+  logs            LogAuditoria[]
+  recuperacoes    RecuperacaoSenha[]
+  solicCriadas    Solicitacao[]         @relation("SolicCriador")
+  solicAprovadas  Solicitacao[]         @relation("SolicAprovador")
+  solicMensagens  SolicitacaoMensagem[]
+  eventos         EventoHistorico[]
+
+  @@index([tenantId])
+  @@index([cpf])
+  @@map("usuarios")
+}
+
+/// Vínculo usuário ↔ empresa (a quais empresas o usuário tem acesso).
+model UsuarioEmpresa {
+  usuarioId Int
+  empresaId Int
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, empresaId])
+  @@map("usuario_empresas")
+}
+
+// RBAC ============================
+
+/// Perfil de acesso (papel) dentro de um tenant.
+model Perfil {
+  id        Int     @id @default(autoincrement())
+  tenantId  Int
+  nome      String
+  descricao String?
+
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  permissoes    PerfilPermissao[]
+  usuarioPerfis UsuarioPerfil[]
+
+  @@unique([tenantId, nome])
+  @@map("perfis")
+}
+
+/// Catálogo global de permissões (modulo + ação).
+model Permissao {
+  id     Int            @id @default(autoincrement())
+  modulo String
+  acao   AcaoPermissao
+
+  perfis PerfilPermissao[]
+
+  @@unique([modulo, acao])
+  @@map("permissoes")
+}
+
+model PerfilPermissao {
+  perfilId    Int
+  permissaoId Int
+
+  perfil    Perfil    @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  permissao Permissao @relation(fields: [permissaoId], references: [id], onDelete: Cascade)
+
+  @@id([perfilId, permissaoId])
+  @@map("perfil_permissoes")
+}
+
+/// Atribuição de perfil ao usuário, com escopo por empresa.
+model UsuarioPerfil {
+  usuarioId Int
+  perfilId  Int
+  empresaId Int
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  perfil  Perfil  @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, perfilId, empresaId])
+  @@map("usuario_perfis")
+}
+
+// AUDITORIA / SESSÕES ============================
+
+model LogAuditoria {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  usuarioId Int?
+  acao      String   // ex.: "criar", "editar", "excluir", "login"
+  modulo    String?
+  entidade  String?
+  entidadeId String?
+  detalhes  String?  @db.Text
+  ip        String?
+  userAgent String?
+  criadoEm  DateTime @default(now())
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([usuarioId])
+  @@map("logs_auditoria")
+}
+
+/// Token de recuperação de senha (enviado por e-mail).
+model RecuperacaoSenha {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int
+  tokenHash String   @unique
+  expiraEm  DateTime
+  usado     Boolean  @default(false)
+  criadoEm  DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("recuperacoes_senha")
+}
+
+/// Sessão ativa (permite logout forçado em todos os dispositivos).
+model Sessao {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int
+  jti       String   @unique // id do token JWT
+  ip        String?
+  userAgent String?
+  revogada  Boolean  @default(false)
+  criadoEm  DateTime @default(now())
+  expiraEm  DateTime
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("sessoes")
+}
+
+// HISTÓRICO DE VIDA (LINHA DO TEMPO POR CPF) ============================
+
+/// Evento na linha do tempo de uma pessoa (identificada por CPF).
+/// Recebe eventos de qualquer origem: portal, RH (ponto/holerite), pagamentos, etc.
+model EventoHistorico {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int
+  cpf        String   // pessoa dona do evento
+  usuarioId  Int?     // vínculo opcional ao usuário do portal
+  tipo       String   // login, solicitacao, pagamento, ponto, holerite, atestado, documento, beneficio, acesso...
+  titulo     String
+  descricao  String?  @db.Text
+  valor      Decimal? @db.Decimal(12, 2) // para eventos financeiros
+  origem     String   @default("portal") // portal | rhally | manual
+  metadata   String?  @db.Text // JSON livre
+  dataEvento DateTime @default(now()) // quando o evento aconteceu
+  criadoEm   DateTime @default(now())
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, cpf])
+  @@index([tipo])
+  @@index([dataEvento])
+  @@map("eventos_historico")
+}
+
+// SOLICITAÇÕES / SERVICEDESK ============================
+
+/// Solicitação aberta por um usuário (suporte à Rhally, aprovação interna ou ticket).
+model Solicitacao {
+  id          Int                @id @default(autoincrement())
+  tenantId    Int
+  criadorId   Int
+  empresaId   Int?
+  tipo        TipoSolicitacao
+  titulo      String
+  descricao   String             @db.Text
+  prioridade  PrioridadeSolic    @default(MEDIA)
+  status      StatusSolic        @default(ABERTA)
+  aprovadorId Int?
+  criadoEm    DateTime           @default(now())
+  atualizadoEm DateTime          @updatedAt
+
+  tenant    Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  criador   Usuario               @relation("SolicCriador", fields: [criadorId], references: [id])
+  aprovador Usuario?              @relation("SolicAprovador", fields: [aprovadorId], references: [id])
+  mensagens SolicitacaoMensagem[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("solicitacoes")
+}
+
+/// Mensagem/resposta dentro de uma solicitação (thread).
+model SolicitacaoMensagem {
+  id            Int      @id @default(autoincrement())
+  solicitacaoId Int
+  autorId       Int
+  mensagem      String   @db.Text
+  interno       Boolean  @default(false) // nota interna (não visível ao solicitante)
+  criadoEm      DateTime @default(now())
+
+  solicitacao Solicitacao @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  autor       Usuario     @relation(fields: [autorId], references: [id])
+
+  @@index([solicitacaoId])
+  @@map("solicitacao_mensagens")
+}
+
+// MÓDULOS / FATURAMENTO ============================
+
+model Modulo {
+  id        Int      @id @default(autoincrement())
+  slug      String   @unique
+  nome      String
+  descricao String?
+  ativo     Boolean  @default(true)
+
+  planoModulos  PlanoModulo[]
+  tenantModulos TenantModulo[]
+
+  @@map("modulos")
+}
+
+model Plano {
+  id          Int           @id @default(autoincrement())
+  nome        String
+  descricao   String?
+  precoMensal Decimal       @db.Decimal(10, 2)
+  ativo       Boolean       @default(true)
+  criadoEm    DateTime      @default(now())
+
+  planoModulos PlanoModulo[]
+  contratos    Contrato[]
+
+  @@map("planos")
+}
+
+model PlanoModulo {
+  planoId  Int
+  moduloId Int
+
+  plano  Plano  @relation(fields: [planoId], references: [id], onDelete: Cascade)
+  modulo Modulo @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+
+  @@id([planoId, moduloId])
+  @@map("plano_modulos")
+}
+
+/// Módulos contratados por um tenant (fonte do /modules/public/check).
+model TenantModulo {
+  tenantId Int
+  moduloId Int
+  ativo    Boolean @default(true)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  modulo Modulo @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, moduloId])
+  @@map("tenant_modulos")
+}
+
+model Contrato {
+  id            Int            @id @default(autoincrement())
+  tenantId      Int
+  planoId       Int
+  dataInicio    DateTime
+  dataFim       DateTime?
+  valorMensal   Decimal        @db.Decimal(10, 2)
+  diaVencimento Int            @default(10)
+  status        ContratoStatus @default(ATIVO)
+  urlContratoPdf String?
+  observacoes   String?        @db.Text
+  criadoEm      DateTime       @default(now())
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plano   Plano    @relation(fields: [planoId], references: [id])
+  faturas Fatura[]
+
+  @@index([tenantId])
+  @@map("contratos")
+}
+
+// ADMIN INTERNO RHALLY ============================
+
+/// Usuário interno da equipe Rhally (acesso ao painel admin).
+model AdminUsuario {
+  id        Int         @id @default(autoincrement())
+  nome      String
+  email     String      @unique
+  senhaHash String
+  role      AdminRole   @default(SUPORTE)
+  ativo     Boolean     @default(true)
+  criadoEm DateTime    @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("admin_usuarios")
+}
+
+model Fatura {
+  id          Int          @id @default(autoincrement())
+  contratoId  Int
+  tenantId    Int
+  competencia String
+  valor       Decimal      @db.Decimal(10, 2)
+  vencimento  DateTime
+  status      FaturaStatus @default(PENDENTE)
+  pagoEm      DateTime?
+  asaasChargeId String?    @unique
+  billingType   String?
+  invoiceUrl    String?
+  criadoEm    DateTime     @default(now())
+
+  contrato   Contrato    @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pagamentos Pagamento[]
+
+  @@unique([contratoId, competencia])
+  @@index([tenantId])
+  @@map("faturas")
+}
+
+model Pagamento {
+  id       Int      @id @default(autoincrement())
+  faturaId Int
+  valor    Decimal  @db.Decimal(10, 2)
+  metodo   String?
+  pagoEm   DateTime @default(now())
+
+  fatura Fatura @relation(fields: [faturaId], references: [id], onDelete: Cascade)
+
+  @@index([faturaId])
+  @@map("pagamentos")
+}
+
+// ENUMS ============================
+
+enum TenantStatus {
+  ATIVO
+  INATIVO
+  SUSPENSO
+}
+
+enum TenantOrigem {
+  TRIAL
+  MANUAL
+  CONTRATO
+}
+
+enum ContratoStatus {
+  ATIVO
+  ENCERRADO
+  SUSPENSO
+}
+
+enum FaturaStatus {
+  PENDENTE
+  PAGA
+  ATRASADA
+  CANCELADA
+}
+
+enum AcaoPermissao {
+  VISUALIZAR
+  EDITAR
+  EXCLUIR
+  EXPORTAR
+}
+
+enum TipoSolicitacao {
+  SUPORTE_RHALLY // do cliente para a Rhally (suporte, módulos, usuários, plano)
+  INTERNA        // aprovação interna na empresa
+  TICKET         // chamado/atendimento (ServiceDesk)
+}
+
+enum PrioridadeSolic {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum AdminRole {
+  SUPER       // acesso total
+  COMERCIAL   // vê clientes, contratos, pode editar
+  SUPORTE     // vê clientes, abre chamados, não edita financeiro
+}
+
+enum StatusSolic {
+  ABERTA
+  EM_ANDAMENTO
+  AGUARDANDO
+  RESOLVIDA
+  FECHADA
+  APROVADA
+  REJEITADA
+}
